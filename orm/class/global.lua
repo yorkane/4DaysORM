@@ -1,13 +1,14 @@
 
+local ngx = require "ngx"
 ------------------------------------------------------------------------------
 --                                Constants                                 --
 ------------------------------------------------------------------------------
 
 -- Backtrace types
-ERROR = 'e'
-WARNING = 'w'
-INFO = 'i'
-DEBUG = 'd'
+ERROR = 'ERROR'
+WARNING = 'WARNING'
+INFO = 'INFO'
+DEBUG = 'DEBUG'
 
 All_Tables = {}
 
@@ -25,22 +26,22 @@ function pairs(Table)
     end
 end
 
+---- ngx.debug
+
 function BACKTRACE(tracetype, message)
     if DB.backtrace then
         if tracetype == ERROR then
-            print("[SQL:Error] " .. message)
-            os.exit()
-
+            ngx.log(ngx.ERR,"[SQL:Error]: ", tostring(message))
+            --os.exit()
         elseif tracetype == WARNING then
-            print("[SQL:Warning] " .. message)
-
+            ngx.log(ngx.WARN,"[SQL:Warning] " , message)
         elseif tracetype == INFO then
-            print("[SQL:Info] " .. message)
+            ngx.log(ngx.INFO,"[SQL:Info] " , message)
         end
     end
 
     if DB.DEBUG and tracetype == DEBUG then
-        print("[SQL:Debug] " .. message)
+        ngx.log(ngx.DEBUG,"[SQL:Debug] " .. message)
     end
 end
 

@@ -7,6 +7,17 @@ local Query, QueryList = require('orm.class.query')
 local fields = require('orm.tools.fields')
 
 
+
+-- CREATE TABLE `user` (
+--     `id` int(11) NOT NULL AUTO_INCREMENT,
+--     `username` varchar(50) NOT NULL,
+--     `password` varchar(50) NOT NULL,
+--     `level` int(10) DEFAULT NULL,
+--     `crd_date` int(10) DEFAULT NULL,
+--     `upd_date` int(10) DEFAULT NULL,
+--   PRIMARY KEY (`id`)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 ------------------------------------------------------------------------------
 --                               Table                                      --
 ------------------------------------------------------------------------------
@@ -60,7 +71,7 @@ function Table:create_table(table_instance)
                        "`(`id`)"
     end
 
-    create_query = create_query .. "\n)"
+    create_query = create_query .. "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8 "
 
     db:execute(create_query)
 end

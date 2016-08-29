@@ -127,9 +127,14 @@ function Query(own_table, data)
             insert = insert .. ") \n\t    VALUES (" .. values .. ")"
 
             -- TODO: return valid ID
-            _connect = db:insert(insert)
-
-            self._data.id = {new = _connect}
+            _connect,err = db:insert(insert)
+            if not _connect then
+                self._data.id = nil
+                return false, "mysql failed for insert"
+            else
+                self._data.id = {new = _connect}
+            end
+            return _connect,err
         end,
 
         -- Update data in database
@@ -158,7 +163,8 @@ function Query(own_table, data)
 
             if set ~= "" then
                 update = update .. " SET " .. set .. "\n\t    WHERE `" .. ID .. "` = " .. self.id
-                db:execute(update)
+                ---- modify 20160829 
+                return db:execute(update)
             end
         end,
 
@@ -169,9 +175,11 @@ function Query(own_table, data)
         -- save row
         save = function (self)
             if self.id then
-                self:_update()
+                ---- fixed 
+                return self:_update()
             else
-                self:_add()
+                ---- fixed 
+                return self:_add()
             end
         end,
 
@@ -183,7 +191,7 @@ function Query(own_table, data)
                 delete = "DELETE FROM `" .. self.own_table.__tablename__ .. "` "
                 delete = delete .. "WHERE `" .. ID .. "` = " .. self.id
 
-                db:execute(delete)
+                return db:execute(delete)
             end
             self._data = {}
         end

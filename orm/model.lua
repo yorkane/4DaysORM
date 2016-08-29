@@ -16,10 +16,10 @@ AGGREGATOR = "aggregator"
 QUERY_LIST = "query_list"
 
 -- databases types
-SQLITE = "sqlite3"
-ORACLE = "oracle"
-MYSQL = "mysql"
-POSTGRESQL = "postgresql"
+TYPE_SQLITE = "sqlite3"
+TYPE_ORACLE = "oracle"
+TYPE_MYSQL = "mysql"
+TYPE_POSTGRESQL = "postgresql"
 
 ------------------------------------------------------------------------------
 --                              Model Settings                              --
@@ -36,10 +36,10 @@ DB = {
     DEBUG = (DB.DEBUG == true),
     backtrace = (DB.backtrace == true),
     -- database settings
-    type = DB.type or "sqlite3",
+    dbtype = DB.dbtype or "sqlite3",
     -- if you use sqlite set database path value
     -- if not set a database name
-    name = DB.name or "database.db",
+    dbname = DB.dbname or "database.db",
     -- not sqllite db settings
     host = DB.host or nil,
     port = DB.port or nil,
@@ -48,27 +48,28 @@ DB = {
 }
 
 local sql, _connect
+local luasql 
 
 -- Get database by settings
-if DB.type == SQLITE then
-    require("luasql.sqlite3")
+if DB.dbtype == TYPE_SQLITE then
+    luasql = require("luasql.sqlite3")
     sql = luasql.sqlite3()
-    _connect = sql:connect(DB.name)
+    _connect = sql:connect(DB.dbname)
 
-elseif DB.type == MYSQL then
-    require("luasql.mysql")
+elseif DB.dbtype == TYPE_MYSQL then
+    luasql = require("luamysql")
     sql = luasql.mysql()
-    print(DB.name, DB.username, DB.password, DB.host, DB.port)
-    _connect = sql:connect(DB.name, DB.username, DB.password, DB.host, DB.port)
+    print(DB.dbname, DB.username, DB.password, DB.host, DB.port)
+    _connect = sql:connect(DB.dbname, DB.username, DB.password, DB.host, DB.port)
 
-elseif DB.type == POSTGRESQL then
-    require("luasql.postgres")
+elseif DB.dbtype == TYPE_POSTGRESQL then
+    luasql = require("luasql.postgres")
     sql = luasql.postgres()
-    print(DB.name, DB.username, DB.password, DB.host, DB.port)
-    _connect = sql:connect(DB.name, DB.username, DB.password, DB.host, DB.port)
+    print(DB.dbname, DB.username, DB.password, DB.host, DB.port)
+    _connect = sql:connect(DB.dbname, DB.username, DB.password, DB.host, DB.port)
 
 else
-    BACKTRACE(ERROR, "Database type not suported '" .. tostring(DB.type) .. "'")
+    BACKTRACE(ERROR, "Database dbtype not suported '" .. tostring(DB.dbtype) .. "'")
 end
 
 if not _connect then
@@ -78,10 +79,10 @@ end
 -- if DB.new then
 --     BACKTRACE(INFO, "Remove old database")
 
---     if DB.type == SQLITE then
---         os.remove(DB.name)
+--     if DB.dbtype == TYPE_SQLITE then
+--         os.remove(DB.dbname)
 --     else
---         _connect:execute('DROP DATABASE `' .. DB.name .. '`')
+--         _connect:execute('DROP DATABASE `' .. DB.dbname .. '`')
 --     end
 -- end
 
@@ -97,20 +98,32 @@ db = {
     -- Execute SQL query
     execute = function (self, query)
         BACKTRACE(DEBUG, query)
-
-        local result = self.connect:execute(query)
-
+        ---- fixed add err return value catch mysql error 
+        local result,err = self.connect:execute(query)
         if result then
             return result
         else
-            BACKTRACE(WARNING, "Wrong SQL query")
+            BACKTRACE(ERROR, "Wrong SQL query " .. tostring(err))
+            return result,err
         end
     end,
 
     -- Return insert query id
     insert = function (self, query)
-        local _cursor = self:execute(query)
-        return 1
+        local _cursor, err = self:execute(query)
+        ---- modify 20160827
+        if not _cursor then
+            local break_conn = string.find(err, "LuaSQL%:%serror%sexecuting%squery%.%sMySQL%:%sMySQL%sserver%shas%sgone%saway")
+            if break_conn then
+                assert(false, tostring(err))
+            end
+            return nil, err
+        end
+
+        -- type(_cursor) is number 
+        -- _cursor value is effect rows
+
+        return tonumber(_cursor)
     end,
 
     -- get parced data
